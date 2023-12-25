@@ -16,7 +16,7 @@ on:
         default: true
         type: boolean
       msbuild_cl_x86_release:
-        default: true
+        default: false
         type: boolean
 #      msbuild_cl_ARM64_release:
 #        default: true
@@ -99,7 +99,7 @@ jobs:
 #           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
 
       - name: Build (msbuild)
-        #working-directory: bin
+        continue-on-error: true
         run: |
           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Restore /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=${{ matrix.build_config }} /p:Platform=${{ matrix.platform_sln }} /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="bin\publish\win-${{ matrix.platform_sln }}" /p:RuntimeIdentifier=win-${{ matrix.platform_sln }} /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=${{ matrix.build_config }} /p:Platform=${{ matrix.platform_sln }} /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="bin\publish\win-${{ matrix.platform_sln }}" /p:RuntimeIdentifier=win-${{ matrix.platform_sln }} /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
@@ -133,6 +133,7 @@ jobs:
 #           dir ../
 
       - name: Create Zip Archive Release
+        continue-on-error: false
         uses: deep-soft/zip-release@v2
         with:
           type: 'zip'
