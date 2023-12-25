@@ -36,6 +36,7 @@ env:
   PROG_NAME:    "BCU"
   TAG_NAME:     "BCU"
   PROG_VERSION: "1.0.0.0"
+  WINDOWS_PFX_BASE64: '${{ secrets.WINDOWS_PFX_BASE64 }}'
 
 jobs:
 #------------------------------------------------------------------------------
@@ -96,8 +97,8 @@ jobs:
           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
 
       - name: Sign Windows exe and dll files
-        #if: always() && secrets.WINDOWS_PFX_BASE64 != '' && matrix.platform_sln == 'x64'
-        if: always() && secrets.WINDOWS_PFX_BASE64 != ''
+        #if: always() && env.WINDOWS_PFX_BASE64 != '' && matrix.platform_sln == 'x64'
+        if: always() && env.WINDOWS_PFX_BASE64 != ''
         continue-on-error: true
         uses: deep-soft/code-sign-action@master
         with:
