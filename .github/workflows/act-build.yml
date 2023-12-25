@@ -69,8 +69,7 @@ jobs:
         shell: bash
         run: |
           # Prog_version=$(grep PRODUCTVERSION "source\BCU-launcher\BCU-launcher.rc" | awk "{print $2}" | tr "," ".")
-          Prog_version=$(grep PRODUCTVERSION "source\GlobalAssemblyInfo.cs" | awk -F "(" "{print $2}" | awk -F ")" "{print $1}")
-
+          Prog_version=$(grep AssemblyVersion "source\GlobalAssemblyInfo.cs" | awk -F "(" "{print $2}" | awk -F ")" "{print $1}" | tr -d "\"")
           echo "PROG_VERSION=v$Prog_version"
           echo "PROG_VERSION=v$Prog_version" >> $GITHUB_ENV
 
