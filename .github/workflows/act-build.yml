@@ -1,4 +1,4 @@
-# 2023-12-25 18:30
+# 2023-12-25 19:40
 #
 #
 #
@@ -18,9 +18,9 @@ on:
       msbuild_cl_x86_release:
         default: true
         type: boolean
-      msbuild_cl_ARM64_release:
-        default: true
-        type: boolean
+#      msbuild_cl_ARM64_release:
+#        default: true
+#        type: boolean
 # :publish
 # set identifier=win-%platform%
 # set target=%CD%\bin\publish\%identifier%
