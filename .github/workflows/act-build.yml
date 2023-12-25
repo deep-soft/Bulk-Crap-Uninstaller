@@ -33,8 +33,9 @@ on:
 # source\GlobalAssemblyInfo.cs
 
 env:
-  PROG_NAME:    "BCU"
-  TAG_NAME:     "BCU"
+  PROG_NAME:     "BCU"
+  PROG_FULLNAME: "BulkCrapUninstaller"
+  TAG_NAME:      "BCU"
   PROG_VERSION: "1.0.0.0"
   WINDOWS_PFX_BASE64: '${{ secrets.WINDOWS_PFX_BASE64 }}'
 
@@ -50,15 +51,15 @@ jobs:
                  msbuild_cl_x64_release,
 #                 msbuild_cl_x86_debug,
                  msbuild_cl_x86_release,
-                 msbuild_cl_ARM64_release,
+#                 msbuild_cl_ARM64_release,
                ]
   
         include:
 #          - { build: msbuild_cl_x64_debug,     compiler: msbuild_cl, arch: amd64,       platform_sln: x64,   platform_name: x64,   build_config: Debug }
           - { build: msbuild_cl_x64_release,   compiler: msbuild_cl, arch: amd64,       platform_sln: x64,   platform_name: x64,   build_config: Release }
-#          - { build: msbuild_cl_x86_debug,     compiler: msbuild_cl, arch: amd64_x86,   platform_sln: Win32, platform_name: x86,   build_config: Debug }
-          - { build: msbuild_cl_x86_release,   compiler: msbuild_cl, arch: amd64_x86,   platform_sln: Win32, platform_name: x86,   build_config: Release }
-          - { build: msbuild_cl_ARM64_release, compiler: msbuild_cl, arch: amd64_arm64, platform_sln: ARM64, platform_name: ARM64, build_config: Release }
+#          - { build: msbuild_cl_x86_debug,     compiler: msbuild_cl, arch: amd64_x86,   platform_sln: x86, platform_name: x86,   build_config: Debug }
+          - { build: msbuild_cl_x86_release,   compiler: msbuild_cl, arch: amd64_x86,   platform_sln: x86, platform_name: x86,   build_config: Release }
+#          - { build: msbuild_cl_ARM64_release, compiler: msbuild_cl, arch: amd64_arm64, platform_sln: ARM64, platform_name: ARM64, build_config: Release }
 
     steps:
       - name: Checkout source
@@ -69,7 +70,9 @@ jobs:
         shell: bash
         run: |
           # Prog_version=$(grep PRODUCTVERSION "source\BCU-launcher\BCU-launcher.rc" | awk "{print $2}" | tr "," ".")
+          # Prog_version=$(grep AssemblyVersion "source\GlobalAssemblyInfo.cs" | awk -F "(" "{print $2}" | awk -F ")" "{print $1}" | tr -d "\"")
           Prog_version=$(grep AssemblyVersion "source\GlobalAssemblyInfo.cs" | awk -F '(' '{print $2}' | awk -F ')' '{print $1}' | tr -d '\"')
+
           echo "PROG_VERSION=v$Prog_version"
           echo "PROG_VERSION=v$Prog_version" >> $GITHUB_ENV
 
@@ -101,6 +104,13 @@ jobs:
           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Restore /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=${{ matrix.build_config }} /p:Platform=${{ matrix.platform_sln }} /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="bin\publish\win-${{ matrix.platform_sln }}" /p:RuntimeIdentifier=win-${{ matrix.platform_sln }} /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=${{ matrix.build_config }} /p:Platform=${{ matrix.platform_sln }} /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="bin\publish\win-${{ matrix.platform_sln }}" /p:RuntimeIdentifier=win-${{ matrix.platform_sln }} /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
 
+      - name: copy files to publish folder
+        run: |
+          #source\${{ env.PROG_FULLNAME}}\bin\publish\win-x64\
+          copy "doc\BCU_manual.html" "source\${{ env.PROG_FULLNAME}}\bin\publish\win-x64"
+          copy "PrivacyPolicy.txt"   "source\${{ env.PROG_FULLNAME}}\bin\publish\win-x64"
+          copy "README.md"           "source\${{ env.PROG_FULLNAME}}\bin\publish\win-x64"
+
       - name: Sign Windows exe and dll files
         #if: always() && env.WINDOWS_PFX_BASE64 != '' && matrix.platform_sln == 'x64'
         if: always() && env.WINDOWS_PFX_BASE64 != ''
@@ -111,7 +121,7 @@ jobs:
           password: '${{ secrets.WINDOWS_PFX_PASSWORD }}'
           certificatesha1: '${{ secrets.WINDOWS_PFX_SHA1_THUMBPRINT }}'
           # certificatename: '${{ secrets.CERTNAME }}'
-          folder: 'bin/publish/win-${{ matrix.platform_sln }}'
+          folder: 'source/${{ env.PROG_FULLNAME}}/bin/publish/win-${{ matrix.platform_sln }}'
           recursive: true
 
 #       - name: Create zip
@@ -127,7 +137,7 @@ jobs:
         with:
           type: 'zip'
           filename: '${{ env.PROG_NAME }}-${{ matrix.build_config }}.${{ matrix.platform_sln }}.${{ env.PROG_VERSION }}.zip'
-          directory: 'bin/publish/win-${{ matrix.platform_sln }}'
+          directory: 'source/${{ env.PROG_FULLNAME}}/bin/publish/win-${{ matrix.platform_sln }}'
           exclusions: '*.map *.pdb'
           recursive_exclusions: '*.map *.pdb'
           path: '.'
