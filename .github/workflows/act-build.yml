@@ -1,0 +1,160 @@
+# 2023-12-25 18:30
+#
+#
+#
+#
+name: act-Build
+
+on:
+#  push:
+#    branches: [ master ]
+#  pull_request:
+#    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      msbuild_cl_x64_release:
+        default: true
+        type: boolean
+      msbuild_cl_x86_release:
+        default: true
+        type: boolean
+      msbuild_cl_ARM64_release:
+        default: true
+        type: boolean
+# :publish
+# set identifier=win-%platform%
+# set target=%CD%\bin\publish\%identifier%
+# %msbuild% "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Restore;Rebuild /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+# %msbuild% "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+
+# PRODUCTVERSION 1,2,0,0
+# source\BCU-launcher\BCU-launcher.rc
+# [assembly: AssemblyVersion("5.7.0.0")]
+# source\GlobalAssemblyInfo.cs
+
+env:
+  PROG_NAME:    "BCU"
+  TAG_NAME:     "BCU"
+  PROG_VERSION: "1.0.0.0"
+
+jobs:
+#------------------------------------------------------------------------------
+  build-msbuild:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ 
+#                 msbuild_cl_x64_debug,
+                 msbuild_cl_x64_release,
+#                 msbuild_cl_x86_debug,
+                 msbuild_cl_x86_release,
+                 msbuild_cl_ARM64_release,
+               ]
+  
+        include:
+#          - { build: msbuild_cl_x64_debug,     compiler: msbuild_cl, arch: amd64,       platform_sln: x64,   platform_name: x64,   build_config: Debug }
+          - { build: msbuild_cl_x64_release,   compiler: msbuild_cl, arch: amd64,       platform_sln: x64,   platform_name: x64,   build_config: Release }
+#          - { build: msbuild_cl_x86_debug,     compiler: msbuild_cl, arch: amd64_x86,   platform_sln: Win32, platform_name: x86,   build_config: Debug }
+          - { build: msbuild_cl_x86_release,   compiler: msbuild_cl, arch: amd64_x86,   platform_sln: Win32, platform_name: x86,   build_config: Release }
+          - { build: msbuild_cl_ARM64_release, compiler: msbuild_cl, arch: amd64_arm64, platform_sln: ARM64, platform_name: ARM64, build_config: Release }
+
+    steps:
+      - name: Checkout source
+        uses: deep-soft/checkout@v3
+
+      - name: Get program version
+        continue-on-error: false
+        shell: bash
+        run: |
+          # Prog_version=$(grep PRODUCTVERSION "source\BCU-launcher\BCU-launcher.rc" | awk "{print $2}" | tr "," ".")
+          Prog_version=$(grep PRODUCTVERSION "source\GlobalAssemblyInfo.cs" | awk -F "(" "{print $2}" | awk -F ")" "{print $1}")
+
+          echo "PROG_VERSION=v$Prog_version"
+          echo "PROG_VERSION=v$Prog_version" >> $GITHUB_ENV
+
+      - name: Print program version
+        continue-on-error: false
+        shell: bash
+        run: |
+          echo "Print program version"
+          echo ${{ env.PROG_VERSION }}
+
+      - name: Set MSVC environment
+        uses: deep-soft/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Build (msbuild)
+        #working-directory: bin
+        run: |
+          set platform=${{ matrix.platform_sln }}
+          set config=${{ matrix.build_config }}
+          set identifier=win-%platform%
+          set target=%CD%\bin\publish\%identifier%
+          msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Restore;Rebuild /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+          msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+
+      - name: Sign Windows exe and dll files
+        #if: always() && secrets.WINDOWS_PFX_BASE64 != '' && matrix.platform_sln == 'x64'
+        if: always() && secrets.WINDOWS_PFX_BASE64 != ''
+        continue-on-error: true
+        uses: deep-soft/code-sign-action@master
+        with:
+          certificate: '${{ secrets.WINDOWS_PFX_BASE64 }}'
+          password: '${{ secrets.WINDOWS_PFX_PASSWORD }}'
+          certificatesha1: '${{ secrets.WINDOWS_PFX_SHA1_THUMBPRINT }}'
+          # certificatename: '${{ secrets.CERTNAME }}'
+          folder: 'bin/publish/win-${{ matrix.platform_sln }}'
+          recursive: true
+
+#       - name: Create zip
+#         continue-on-error: true
+#         working-directory: _build/vc/_output/product/${{ matrix.build_config }}.${{ matrix.platform_sln }}
+#         run: |
+#           dir ./
+#           Compress-Archive . ../${{ env.PROG_NAME }}.${{ matrix.build_config }}.${{ matrix.platform_sln }}.${{ env.PROG_VERSION }}.zip
+#           dir ../
+
+      - name: Create Zip Archive Release
+        uses: deep-soft/zip-release@v2
+        with:
+          type: 'zip'
+          filename: '${{ env.PROG_NAME }}-${{ matrix.build_config }}.${{ matrix.platform_sln }}.${{ env.PROG_VERSION }}.zip'
+          directory: 'bin/publish/win-${{ matrix.platform_sln }}'
+          exclusions: '*.map *.pdb'
+          recursive_exclusions: '*.map *.pdb'
+          path: '.'
+
+      - name: Upload zip
+        continue-on-error: true
+        uses: deep-soft/upload-artifact@main
+        with:
+          name: ${{ env.PROG_NAME }}-${{ matrix.build_config }}.${{ matrix.platform_name }}.${{ env.PROG_VERSION }}.zip
+          path: ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v1
+        with:
+          tag_name: ${{ env.TAG_NAME }}-${{ env.PROG_VERSION }}
+          files: |
+            ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Prepare latest Release
+        continue-on-error: false
+        shell: bash
+        run: |
+          mv ${{ env.ZIP_RELEASE_ARCHIVE }} ${{ env.PROG_NAME }}.${{ matrix.platform_name }}.zip
+          echo "${{ env.PROG_VERSION }}" > ${{ env.PROG_NAME }}-latest.txt
+
+      - name: Publish latest Release
+        continue-on-error: false
+        uses: deep-soft/action-gh-release@v1
+        with:
+          draft: false
+          tag_name: ${{ env.PROG_NAME }}-latest
+          body: "${{ env.PROG_NAME }} latest: v${{ env.PROG_VERSION }}"
+          files: |
+            ${{ env.PROG_NAME }}.${{ matrix.platform_name }}.zip
+            ${{ env.PROG_NAME }}-latest.txt
