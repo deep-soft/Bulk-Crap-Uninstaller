@@ -85,15 +85,25 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
 
+#       - name: Build (msbuild)
+#         #working-directory: bin
+#         run: |
+#           set platform=${{ matrix.platform_sln }}
+#           set config=${{ matrix.build_config }}
+#           set identifier=win-%platform%
+#           set target=%CD%\bin\publish\%identifier%
+#           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Restore /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+#           msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+
       - name: Build (msbuild)
-        #working-directory: bin
+        shell: bash
         run: |
           set platform=${{ matrix.platform_sln }}
           set config=${{ matrix.build_config }}
-          set identifier=win-%platform%
-          set target=%CD%\bin\publish\%identifier%
-          msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Restore /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
-          msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=%config% /p:Platform=%platform% /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="%target%" /p:RuntimeIdentifier=%identifier% /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+          set identifier=win-$platform
+          set target=bin/publish/$identifier
+          msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Restore /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=$config /p:Platform=$platform /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="$target" /p:RuntimeIdentifier=$identifier /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
+          msbuild "source\BulkCrapUninstaller.sln" /m /p:filealignment=512 /t:Publish /p:DeployOnBuild=true /p:PublishSingleFile=False /p:SelfContained=True /p:PublishProtocol=FileSystem /p:Configuration=$config /p:Platform=$platform /p:TargetFrameworks=net6.0-windows10.0.18362.0 /p:PublishDir="$target" /p:RuntimeIdentifier=$identifier /p:PublishReadyToRun=false /p:PublishTrimmed=False /verbosity:minimal
 
       - name: Sign Windows exe and dll files
         #if: always() && env.WINDOWS_PFX_BASE64 != '' && matrix.platform_sln == 'x64'
